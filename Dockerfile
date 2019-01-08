@@ -1,40 +1,43 @@
-FROM python:3
+FROM python:3 as base
 
-# Set correct environment variables
-ENV HOME /root
-WORKDIR /work
+FROM base as builder
 
-# Install Python Requirements
-RUN pip install --upgrade pip
-RUN pip install requests \ 
-  requests[security] \
-  requests-cache \
-  babelfish \
-  'guessit<2' \
-  'subliminal<2' \
-  'stevedore==1.19.1' \
-  python-dateutil \
-  qtfaststart  && \
+LABEL maintainer="totallyGreg@gmail.com"
 
-# download repo
-  git clone https://github.com/mdhiggins/sickbeard_mp4_automator.git /usr/local/bin/sma/sickbeard_mp4_automator && \
+RUN \
+  apt-get update && \
+  apt-get install -y \
+    git \
+    wget
 
-# create logging directory
-  mkdir /var/log/sickbeard_mp4_automator && \
-  touch /var/log/sickbeard_mp4_automator/index.log && \
-  chgrp -R users /var/log/sickbeard_mp4_automator && \
-  chmod -R g+w /var/log/sickbeard_mp4_automator && \
+RUN mkdir /install
+WORKDIR /install
+
+COPY requirements.txt /requirements.txt
+
+RUN pip install --install-option="--prefix=/install" -r /requirements.txt
+
+FROM base
 
 # ffmpeg
-  wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-64bit-static.tar.xz -O /tmp/ffmpeg.tar.xz && \
-  mkdir /usr/local/bin/ffmpeg && \
-  tar -xJf /tmp/ffmpeg.tar.xz -C /usr/local/bin/ffmpeg --strip-components 1 && \
-  chgrp -R users /usr/local/bin/ffmpeg && \
-  chmod g+x /usr/local/bin/ffmpeg/ffmpeg && \
-  chmod g+x /usr/local/bin/ffmpeg/ffprobe && \
+COPY --from=mwader/static-ffmpeg:4.1 /ffmpeg /ffprobe /usr/local/bin/
 
-# cleanup
-  rm -rf \
+# Python Dependencies
+COPY --from=builder /install /usr/local
+
+WORKDIR /usr/local/bin/sma
+
+# download repo
+RUN git clone https://github.com/mdhiggins/sickbeard_mp4_automator.git /usr/local/bin/sma/sickbeard_mp4_automator
+
+# create logging directory
+RUN  mkdir /var/log/sickbeard_mp4_automator && \
+  touch /var/log/sickbeard_mp4_automator/index.log && \
+  chgrp -R users /var/log/sickbeard_mp4_automator && \
+  chmod -R g+w /var/log/sickbeard_mp4_automator
+
+# I believe this is no longer necessary since copy from builder was added
+RUN  rm -rf \
     /tmp/* \
     /var/lib/apt/lists/* \
     /var/tmp/*
