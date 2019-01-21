@@ -429,6 +429,30 @@ Common Errors
 - `ImportError: No module named pkg_resources` - you need to install setuptools for python. See here: https://pypi.python.org/pypi/setuptools#installation-instructions
 - Problems moving from downloader back to manager - you most likely haven't set up your categories correctly. The category options designated by SB/SR/CP/Sonarr need to match the ones set in your downloader either in the plugin options or in autoProcess.ini, and these categories ALL need to execute either SABPostProcess.py for SAB or NZBGetPostProcess.py for NZBGet. Make sure they match.
 
+Docker Build
+--------------
+'''sh
+docker build -t sma .
+'''
+
+Quick Manual Conversion
+-----------------------
+'''sh
+docker run --rm --entrypoint=/usr/local/bin/sma/sickbeard_mp4_automator/manual.py \
+  -v "$PWD:$PWD" \
+  -v "${PWD}"/autoProcess.ini:/usr/local/bin/sma/sickbeard_mp4_automator/autoProcess.ini:ro \
+  -w "$PWD" totallygreg/sma \
+  -a -i file.mkv 
+'''
+
+Inteactive Conversion
+---------------------
+'''sh
+docker run -it \
+  -v "$PWD:$PWD" \
+  -w "$PWD" totallygreg/sickbeard_mp4_automator bash
+'''
+
 Credits
 --------------
 This project makes use of the following projects:
